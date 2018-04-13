@@ -2,7 +2,7 @@
 var canvas = document.getElementById('mainGame')
 var ctx = canvas.getContext('2d')
 
-
+//////////// UPDATE ES LA FUNCION MAS IMPORTANTE DE TODAS ///////
 /*classes
     tengo que crear una clase de tipo fondo, Board funciona bien para poner scores etc
     para identificar que es una clase, hay que ponerlo en MAYUSCULA
@@ -19,6 +19,8 @@ function Board(){
     this.img = new Image();//image es instancia de la clase img
     this.img.src = "http://ellisonleao.github.io/clumsy-bird/data/img/bg.png";
     this.score = 0;
+    this.music = new Audio();
+    this.music.src = "./assets/mario.mp3" //aqui se inserta el link o la fuente del audio, es una propiedad el board
     this.img.onload = function(){
         this.draw();
     }.bind(this);//esta funcion se le esta dando a .onload, por eso es necesario el .bind
@@ -33,13 +35,16 @@ function Board(){
     this.draw = function (){
         this.move();
         ctx.drawImage(this.img, this.x, this.y, this.width, this.height);//esto se asi asi porque si cambia algo, no hace falta que se cambie en el dibujo
-        ctx.drawImage(this.img, this.x + canvas.width, this.y, this.width, this.height); //se tiene que agregar una segunda imagen para darle efecto de movimiento infinito i si posicion en x tiene que ser la misma + lo ancho del canvas, asi es como se mueve hasta el final del canvas
+        ctx.drawImage(this.img, this.x + canvas.width, this.y, this.width, this.height); //se tiene que agregar una segunda imagen para darle efecto de movimiento infinito i si posicion en x tiene que ser la misma + lo ancho del canvas, asi es como se mueve hasta el final del canvas 
+    };
+
+    this.drawScore = function(){ //se queda separado del this.draw para que se dibuje el score despues de dibujar los pipes y quede encima
         ctx.font = "50px Avenir"
         ctx.fillStyle = "orange";
         ctx.fillText(this.score, canvas.width/2,this.y+50);
+        };
 
-    }
-}           //END OF BOARD CLASS
+};           //END OF BOARD CLASS
     
 
      //Flappy
@@ -65,26 +70,64 @@ function Flappy(){
 }           //END OF FLAPPY CLASS
 
 
+        //PIPES
+function Pipe(y,height){
+    this.x = canvas.width; //cambiar
+    this.y = y; //y no esta definida, porque van a ser random, la idea es que los pipes sean de diferentes tamaños
+    this.width = 50;
+    this.height = height;
+
+    this.draw = function(){
+        this.x--;
+        ctx.fillStyle = "green"
+        ctx.fillRect(this.x, this.y , this.width,this.height) //para dibujarse a si misma
+    }
+}
+
+            //END OF PIPES CLASS
 
 //DECLARACIONES.... minuscula = objeto, mayuscula = clase (board vs Board)
 var board = new Board();
 var flappy = new Flappy();
-
+var pipes = []; //aqui es donde se tienen que guardar las pipes
 var intervalo; //queda como undefined
-var frames = 0; //esta variable exioste para contar cuantas veces se ha ejecutado
+var frames = 0; //esta variable existe para contar cuantas veces se ha ejecutado el juego, acuerdate que inicia, se borra y se vuelve a dibujar etc etc
+
+//FUNCIONES AUXILIARES = AUX FUNCTIONS
+function generatePipes(){
+    if(!(frames % 300 === 0))return; // esto sirve para indicar que se generen los pipes cada 300 frames, tiene que estar hasta arriba para que el resto
+    var ventanita = 150; //esto es el espacio donde va a pasar flappy
+    var randomHeight = Math.floor(Math.random() * 200) + 50;//se necesita una altura random para cada pipe
+    var pipe = new Pipe(0,randomHeight); 
+    var pipe2 = new Pipe(randomHeight + ventanita, canvas.height-(randomHeight + ventanita));
+    pipes.push(pipe);
+    pipes.push(pipe2);
+}
 
 
+        //funcion para pedir a las pipes que si dibujen solos
+function drawPipes(){
+    pipes.forEach(function(pipe){
+        pipe.draw();
+    });
+} 
 
 //MAIN FUNCTIONS  , 
-    //update es lo que pide que se ejecute
+    //update es lo que pide que se ejecute la propiedad/funcion de alguna clase
 function update(){
+    generatePipes();
     frames++;
     console.log(frames);
     ctx.clearRect(0,0,canvas.width,canvas.height);
-    board.draw(); //update borra y pide al tablero que se vuelva a dinbujar, sin eso al oprimir el boton start todo se borra, tiene que ir encima de fkappy para que se cargue primero, queda como la base
+    board.draw(); //update borra y pide al tablero que se vuelva a dibujar, sin eso al oprimir el boton start todo se borra, tiene que ir encima de fkappy para que se cargue primero, queda como la base
     flappy.draw();
+    drawPipes(); //se necesita definir cada que tanto tiempo se va a generar el pipe
+    board.drawScore();
 }
+
+
 function start() {
+    board.music.play(); //aqui se indica que la musica del board se tiene que reproducir
     //si ya esta corriendo, return
     if(intervalo > 0)return;//para que el fondo no se acelere, ver en function stop
     //extras que necesitemos inicializar
@@ -94,6 +137,7 @@ function start() {
 }
 
 function stop(){
+    board.music.pause();
     clearInterval(intervalo);
     intervalo = 0; //para que el fondo no se acelere, ver en function start
 }
@@ -110,4 +154,4 @@ addEventListener('keydown',function(e){
     if(e.keyCode === 32){
         flappy.move();
     }
-})
+});
